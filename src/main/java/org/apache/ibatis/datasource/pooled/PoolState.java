@@ -97,6 +97,9 @@ public class PoolState {
     builder.append("\n poolPingEnabled                ").append(dataSource.poolPingEnabled);
     builder.append("\n poolPingQuery                  ").append(dataSource.poolPingQuery);
     builder.append("\n poolPingConnectionsNotUsedFor  ").append(dataSource.poolPingConnectionsNotUsedFor);
+    builder.append("\n validateConnection             ").append(dataSource.validateConnection);
+    builder.append("\n validateConnectionTimeout      ").append(dataSource.validateConnectionTimeout);
+    builder.append("\n validateConnectionNotUsedFor   ").append(dataSource.validateConnectionNotUsedFor);
     builder.append("\n ---STATUS-----------------------------------------------------");
     builder.append("\n activeConnections              ").append(getActiveConnectionCount());
     builder.append("\n idleConnections                ").append(getIdleConnectionCount());

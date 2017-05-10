@@ -1,5 +1,5 @@
 /**
- *    Copyright 2009-2016 the original author or authors.
+ *    Copyright 2009-2017 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -50,11 +50,17 @@ public class PooledDataSource implements DataSource {
   protected int poolMaximumIdleConnections = 5;
   protected int poolMaximumCheckoutTime = 20000;
   protected int poolTimeToWait = 20000;
+  
   protected String poolPingQuery = "NO PING QUERY SET";
   protected boolean poolPingEnabled;
   protected int poolPingConnectionsNotUsedFor;
 
   private int expectedConnectionTypeCode;
+  
+  // requires Java 1.6
+  protected boolean validateConnection;
+  protected int validateConnectionTimeout;
+  protected int validateConnectionNotUsedFor;
 
   public PooledDataSource() {
     dataSource = new UnpooledDataSource();
@@ -220,6 +226,26 @@ public class PooledDataSource implements DataSource {
     this.poolPingConnectionsNotUsedFor = milliseconds;
     forceCloseAll();
   }
+  
+  /*
+   * Determines if connections should get validated before use.
+   *
+   * @param validateConnection True if we need to validate a connection before using it
+   */
+  public void setValidateConnection(boolean validateConnection) {
+    this.validateConnection = validateConnection;
+    forceCloseAll();
+  }
+  
+  public void setValidateConnectionTimeout(int seconds) {
+    this.validateConnectionTimeout = seconds;
+    forceCloseAll();
+  }
+  
+  public void setValidateConnectionNotUsedFor(int milliseconds) {
+    this.validateConnectionNotUsedFor = milliseconds;
+    forceCloseAll();
+  }
 
   public String getDriver() {
     return dataSource.getDriver();
@@ -275,6 +301,18 @@ public class PooledDataSource implements DataSource {
 
   public int getPoolPingConnectionsNotUsedFor() {
     return poolPingConnectionsNotUsedFor;
+  }
+  
+  public boolean isValidateConnection() {
+    return validateConnection;
+  }
+
+  public int getValidateConnectionTimeout() {
+    return validateConnectionTimeout;
+  }
+
+  public int getValidateConnectionNotUsedFor() {
+    return validateConnectionNotUsedFor;
   }
 
   /*
@@ -518,6 +556,27 @@ public class PooledDataSource implements DataSource {
               log.debug("Connection " + conn.getRealHashCode() + " is BAD: " + e.getMessage());
             }
           }
+        }
+      }
+    }
+    return result;
+  }
+  
+  /*
+   * Method to check if connection is valid (not closed and not stale). 
+   * Requires Java 1.6
+   */
+  protected boolean validateConnection(PooledConnection conn) {
+    boolean result = true;
+    if (validateConnection) {
+      if (validateConnectionNotUsedFor >= 0 && conn.getTimeElapsedSinceLastUse() > validateConnectionNotUsedFor) {
+        try {
+          if (log.isDebugEnabled()) {
+            log.debug("Validating connection " + conn.getRealHashCode() + " ...");
+          }
+          result = conn.getRealConnection().isValid(validateConnectionTimeout);
+        } catch (SQLException e) {
+          log.debug("Connection " + conn.getRealHashCode() + " is BAD: " + e.getMessage());
         }
       }
     }

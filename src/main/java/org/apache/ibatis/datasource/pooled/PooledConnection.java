@@ -1,5 +1,5 @@
 /**
- *    Copyright 2009-2015 the original author or authors.
+ *    Copyright 2009-2017 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -70,7 +70,17 @@ class PooledConnection implements InvocationHandler {
    * @return True if the connection is usable
    */
   public boolean isValid() {
-    return valid && realConnection != null && dataSource.pingConnection(this);
+    if (!valid || realConnection == null) {
+      return false;
+    } else {
+      if (dataSource.isPoolPingEnabled()) {
+        return dataSource.pingConnection(this);
+      }
+      if (dataSource.isValidateConnection()) {
+        return dataSource.validateConnection(this);
+      }
+      return true;
+    }
   }
 
   /*
